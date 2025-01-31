@@ -3,13 +3,66 @@ import numpy as np
 from tqdm import tqdm
 
 # Configuration
-DATA_PATH = r"E:\Software Dev\Test Repositoriues"  # Raw string for Windows paths
+DATA_PATH = ""  # Raw string for Windows paths
 FILE_EXTENSIONS = [".py", ".cs", ".js", ".java", ".ts", ".html", ".css", ".md", ".go", ".rs", ".jsx", ".ml", ".tsx", ".rb", ".kt" ]
 WINDOW_SIZE = 32  # Reduced window size for better learning
 EMBED_DIM = 64    # Increased embedding size
 BATCH_SIZE = 32   # Increased batch size
 EPOCHS = 20
 LEARNING_RATE = 0.0005  # Reduced learning rate
+
+def save_model(model, char_to_idx, idx_to_char, filename):
+    """Save model parameters and vocabulary mappings"""
+    params = {
+        'char_embed': model.char_embed,
+        'pos_embed': model.pos_embed,
+        'W_Q': model.W_Q,
+        'W_K': model.W_K,
+        'W_V': model.W_V,
+        'W_ff': model.W_ff,
+        'W_out': model.W_out,
+        'gamma1': model.gamma1,
+        'beta1': model.beta1,
+        'gamma2': model.gamma2,
+        'beta2': model.beta2,
+        'vocab_size': model.vocab_size,
+        'window_size': model.window_size,
+        'embed_dim': model.embed_dim,
+        'char_to_idx': char_to_idx,
+        'idx_to_char': idx_to_char
+    }
+    np.savez_compressed(filename, **params)
+    print(f"Model saved to {filename}")
+
+def load_model(filename):
+    """Load model and vocabulary mappings"""
+    data = np.load(filename, allow_pickle=True)
+
+    # Recreate model structure
+    model = SlidingWindowTransformer(
+        int(data['vocab_size']),
+        int(data['window_size']),
+        int(data['embed_dim'])
+    )
+
+    # Restore parameters
+    model.char_embed = data['char_embed']
+    model.pos_embed = data['pos_embed']
+    model.W_Q = data['W_Q']
+    model.W_K = data['W_K']
+    model.W_V = data['W_V']
+    model.W_ff = data['W_ff']
+    model.W_out = data['W_out']
+    model.gamma1 = data['gamma1']
+    model.beta1 = data['beta1']
+    model.gamma2 = data['gamma2']
+    model.beta2 = data['beta2']
+
+    # Restore vocabulary mappings
+    char_to_idx = data['char_to_idx'].item()
+    idx_to_char = data['idx_to_char'].item()
+
+    return model, char_to_idx, idx_to_char
 
 def load_text_data():
     """Load all code files from your repositories"""
@@ -264,7 +317,7 @@ def train():
         # Save best model (you'll need to implement save_model)
         if epoch_loss < best_loss:
             best_loss = epoch_loss
-            # save_model(model, 'best_model.pkl')
+            save_model(model, char_to_idx, idx_to_char, 'best_model.npz')
 
 def softmax(x):
     """Compute softmax values for each set of scores in x."""
@@ -293,4 +346,5 @@ def print_sample(model, char_to_idx, idx_to_char, seed="def ", length=100):
     print("-" * 40)
 
 if __name__ == "__main__":
+    DATA_PATH = r"E:\Software Dev\Test Repositoriues"
     train()
